@@ -1,27 +1,22 @@
 package main
 
 import (
-	"fmt"
+	"github.com/dgraph-io/badger"
 	"mrnagy.com/owlchain/blockchain"
+	"mrnagy.com/owlchain/cli"
+	"os"
 )
 
 func main() {
-	c := blockchain.Genesis()
-	fmt.Printf("Chain has %d blocks\n", len(c.Blocks))
+	defer os.Exit(0)
+	chain := blockchain.NewChain()
+	defer func(Database *badger.DB) {
+		err := Database.Close()
+		if err != nil {
+			blockchain.Handle(err)
+		}
+	}(chain.Database)
 
-	c.AddBlock("First Block")
-	fmt.Printf("Chain has %d blocks\n", len(c.Blocks))
-
-	c.AddBlock("Second Blockerado")
-	fmt.Printf("Chain has %d blocks\n", len(c.Blocks))
-
-	c.AddBlock("Third Blockage")
-	fmt.Printf("Chain has %d blocks\n", len(c.Blocks))
-
-	for _, b := range c.Blocks {
-		fmt.Printf("Hash: %x\n", b.Hash)
-		fmt.Printf("Data: %s\n", b.Data)
-		fmt.Printf("PrevHash: %x\n", b.PrevHash)
-		fmt.Printf("Nonce: %5d  Valid: %t\n\n", b.Nonce, blockchain.NewProof(b).Validate())
-	}
+	c := cli.Cli{Chain: chain}
+	c.Run()
 }
