@@ -36,7 +36,7 @@ func (cli *Cli) PrintChain() {
 		block := iter.Next()
 
 		fmt.Printf("\nHash:     %x\n", block.Hash)
-		fmt.Printf("Data:     %s\n", block.Data)
+		fmt.Printf("Transactions:     %s\n", block.Transactions)
 		fmt.Printf("PrevHash: %x\n", block.PrevHash)
 		fmt.Printf("Nonce: 	 %d  Valid: %t\n\n", block.Nonce, blockchain.NewProof(block).Validate())
 
@@ -51,7 +51,7 @@ func (cli *Cli) Run() {
 
 	addBlockCmd := flag.NewFlagSet("add", flag.ExitOnError)
 	printBlockCmd := flag.NewFlagSet("print", flag.ExitOnError)
-	addBlockData := addBlockCmd.String("block", "", "Block Data")
+	addBlockData := addBlockCmd.String("block", "", "Block Transactions")
 
 	switch os.Args[1] {
 	case "add":
