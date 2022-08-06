@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/gob"
+	"encoding/hex"
 	"fmt"
+	"log"
 )
 
 type Transaction struct {
@@ -58,4 +60,34 @@ func (i *TxInput) CanUnlock(data string) bool {
 
 func (o *TxOutput) CanBeUnlocked(data string) bool {
 	return o.PublicKey == data
+}
+
+func NewTransaction(from, to string, amount int, c *Chain) *Transaction {
+	var in []TxInput
+	var out []TxOutput
+
+	acc, validOutputs := c.FindSpendableOutputs(from, amount)
+
+	if acc < amount {
+		log.Panic("Error: Not enough funds")
+	}
+
+	for id, outs := range validOutputs {
+		txId, err := hex.DecodeString(id)
+		Handle(err)
+		for _, out := range outs {
+			input := TxInput{txId, out, from}
+			in = append(in, input)
+		}
+	}
+
+	out = append(out, TxOutput{amount, to})
+
+	if acc > amount {
+		out = append(out, TxOutput{acc - amount, from})
+	}
+
+	tx := Transaction{nil, in, out}
+	tx.setID()
+	return &tx
 }

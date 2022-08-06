@@ -90,11 +90,11 @@ func genesis(coinbase *Transaction) *Block {
 	return CreateBlock([]*Transaction{coinbase}, []byte{})
 }
 
-func (c *Chain) AddBlock(data string) {
+func (c *Chain) AddBlock(txn []*Transaction) {
 	lastHash, err := c.readLastHash()
 	Handle(err)
 
-	newBlock := CreateBlock(data, lastHash)
+	newBlock := CreateBlock(txn, lastHash)
 
 	err = c.addNewBlock(newBlock)
 	Handle(err)
@@ -166,4 +166,41 @@ func (c *Chain) FindUnspentTransactions(address string) []*Transaction {
 		}
 	}
 	return unspentTxs
+}
+
+func (c *Chain) FindUTXO(address string) []TxOutput {
+	var UTXOs []TxOutput
+	unspentTransactions := c.FindUnspentTransactions(address)
+
+	for _, tx := range unspentTransactions {
+		for _, output := range tx.Outputs {
+			if output.CanBeUnlocked(address) {
+				UTXOs = append(UTXOs, output)
+			}
+		}
+	}
+
+	return UTXOs
+}
+
+func (c *Chain) FindSpendableOutputs(address string, amount int) (int, map[string][]int) {
+	unspentOutputs := make(map[string][]int)
+	unspentTxs := c.FindUnspentTransactions(address)
+	accumulated := 0
+
+Work:
+	for _, tx := range unspentTxs {
+		txId := hex.EncodeToString(tx.ID)
+		for outId, output := range tx.Outputs {
+			if output.CanBeUnlocked(address) && accumulated < amount {
+				accumulated += output.Value
+				unspentOutputs[txId] = append(unspentOutputs[txId], outId)
+
+				if accumulated >= amount {
+					break Work
+				}
+			}
+		}
+	}
+	return accumulated, unspentOutputs
 }
